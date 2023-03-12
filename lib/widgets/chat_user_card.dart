@@ -14,43 +14,50 @@ class ChatUserCard extends StatefulWidget {
 }
 
 class _ChatUserCardState extends State<ChatUserCard> {
-
-
   @override
   Widget build(BuildContext context) {
     return Card(
-
       margin: EdgeInsets.symmetric(horizontal: mq.width * .04, vertical: 4),
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
       child: InkWell(
         onTap: () {},
-        child:   ListTile(
+        child: ListTile(
           //Use Profile
-           
           // leading:const CircleAvatar(child: Icon(CupertinoIcons.person)),
-          leading:CachedNetworkImage(
-            width: mq.height * .055,
-            height: mq.height * .055,
-        imageUrl: widget.user.image,
-        // placeholder: (context, url) => CircularProgressIndicator(),
-        errorWidget: (context, url, error) => const CircleAvatar(child: Icon(CupertinoIcons.person)),
-     ),
+          leading: ClipRRect(
+            borderRadius: BorderRadius.circular(mq.height * .3),
+            child: CachedNetworkImage(
+              width: mq.height * .055,
+              height: mq.height * .055,
+              imageUrl: widget.user.image,
+              errorWidget: (context, url, error) =>
+                  const CircleAvatar(child: Icon(CupertinoIcons.person)),
+            ),
+          ),
           //User Name
           title: Text(widget.user.name),
-          
-          // Subtitles 
+
+          // Subtitles
           subtitle: Text(
             widget.user.about,
             maxLines: 1,
           ),
-          
+
           // Last message time
-          trailing: const Text(
-           '10:00 PM',
-            style: TextStyle(color: Colors.black54),
+          trailing: Container(
+              width: 15,
+              height: 15,
+              decoration: BoxDecoration(color: Colors.greenAccent.shade400,borderRadius: BorderRadius.circular(10)),
+
+          )
           ),
-        ),
+
+          //  trailing: const Text(
+          //   '10:00 PM',
+          //   style: TextStyle(color: Colors.black54),
+          // ),
+       // ),
       ),
     );
   }

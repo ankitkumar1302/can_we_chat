@@ -1,18 +1,12 @@
- 
-
 import 'dart:developer';
-
- 
-
 import 'package:can_we_chat/main.dart';
 import 'package:can_we_chat/models/chat_user.dart';
+import 'package:can_we_chat/screens/profile_screen.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-
 import '../api/apis.dart';
 import '../widgets/chat_user_card.dart';
-// import '../widgets/chat_user_card.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -36,7 +30,11 @@ class _HomeScreenState extends State<HomeScreen> {
           IconButton(onPressed: () {}, icon: const Icon(Icons.search)),
 
           //more Feature Button
-          IconButton(onPressed: () {}, icon: const Icon(Icons.more_vert))
+          IconButton(onPressed: () {
+
+            Navigator.push(context, MaterialPageRoute(builder: (_) => ProfileScreen(user: list[0])));
+
+          }, icon: const Icon(Icons.more_vert))
         ],
       ),
 
