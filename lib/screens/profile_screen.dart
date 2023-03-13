@@ -1,5 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:can_we_chat/helper/dialogs.dart';
 import 'package:can_we_chat/models/chat_user.dart';
+import 'package:can_we_chat/screens/auth/login_screen.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -32,8 +34,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
           child: FloatingActionButton.extended(
             backgroundColor: Colors.redAccent,
             onPressed: () async {
-              await APIs.auth.signOut();
-              await GoogleSignIn().signOut();
+              //for showing progress dialog
+              Dialogs.showProgressBar(context);
+              await APIs.auth.signOut().then((value) async {
+                await GoogleSignIn().signOut().then((value) {
+                  // For hiding progress dialog
+                  Navigator.pop(context);
+                  // for moving to home screen
+                  Navigator.pop(context);
+
+                  Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => LoginScreen()));
+                });
+              });
             },
             icon: const Icon(Icons.logout),
             label: const Text('Logout'),
@@ -46,16 +58,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
               // For Adding some Space
               SizedBox(width: mq.width, height: mq.height * .03),
 
-              ClipRRect(
-                borderRadius: BorderRadius.circular(mq.height * .1),
-                child: CachedNetworkImage(
-                  width: mq.height * .2,
-                  height: mq.height * .2,
-                  fit: BoxFit.fill,
-                  imageUrl: widget.user.image,
-                  errorWidget: (context, url, error) =>
-                      const CircleAvatar(child: Icon(CupertinoIcons.person)),
-                ),
+              Stack(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(mq.height * .1),
+                    child: CachedNetworkImage(
+                      width: mq.height * .2,
+                      height: mq.height * .2,
+                      fit: BoxFit.fill,
+                      imageUrl: widget.user.image,
+                      errorWidget: (context, url, error) => const CircleAvatar(
+                          child: Icon(CupertinoIcons.person)),
+                    ),
+                  ),
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: MaterialButton(
+                      onPressed: () {},
+                      elevation: 1,
+                      shape: const CircleBorder(),
+                      color: Colors.white,
+                      child: const Icon(
+                        Icons.edit,
+                        color: Colors.blue,
+                      ),
+                    ),
+                  )
+                ],
               ),
               // For Adding some Space
               SizedBox(height: mq.height * .03),
@@ -96,8 +126,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               // For Adding some Space
               SizedBox(height: mq.height * .05),
 
-
-            //Update profile Button
+              //Update profile Button
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
                     shape: const StadiumBorder(),
