@@ -1,5 +1,8 @@
-import 'dart:developer';
+// ignore_for_file: use_build_context_synchronously
 
+import 'dart:developer';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:can_we_chat/helper/dialogs.dart';
 import 'package:can_we_chat/models/chat_user.dart';
@@ -23,6 +26,7 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   final _formKey = GlobalKey<FormState>();
+  String? _image;
 
   @override
   Widget build(BuildContext context) {
@@ -70,24 +74,42 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                     Stack(
                       children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(mq.height * .1),
-                          child: CachedNetworkImage(
-                            width: mq.height * .2,
-                            height: mq.height * .2,
-                            fit: BoxFit.fill,
-                            imageUrl: widget.user.image,
-                            errorWidget: (context, url, error) =>
-                                const CircleAvatar(
-                                    child: Icon(CupertinoIcons.person)),
-                          ),
-                        ),
+                        // Profile picture
+                        _image != null
+                            ? ClipRRect(
+                                // Local image
+                                borderRadius:
+                                    BorderRadius.circular(mq.height * .1),
+                                child: Image.file(
+                                  File(_image!),
+                                  width: mq.height * .2,
+                                  height: mq.height * .2,
+                                  fit: BoxFit.cover
+                                ))
+                            :
+
+                            // Image from server
+                            ClipRRect(
+                                borderRadius:
+                                    BorderRadius.circular(mq.height * .1),
+                                child: CachedNetworkImage(
+                                  width: mq.height * .2,
+                                  height: mq.height * .2,
+                                  fit: BoxFit.cover,
+                                  imageUrl: widget.user.image,
+                                  errorWidget: (context, url, error) =>
+                                      const CircleAvatar(
+                                          child: Icon(CupertinoIcons.person)),
+                                ),
+                              ),
                         Positioned(
                           bottom: 0,
                           right: 0,
                           child: MaterialButton(
-                            onPressed: () {},
                             elevation: 1,
+                            onPressed: () {
+                              _showBottomSheet();
+                            },
                             shape: const CircleBorder(),
                             color: Colors.white,
                             child: const Icon(
@@ -156,9 +178,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         if (_formKey.currentState!.validate()) {
                           _formKey.currentState!.save();
                           APIs.updateUserInfo().then((value) {
-
-                            Dialogs.showSnackbar(context, 'Profile Updated Successfully!');
-
+                            Dialogs.showSnackbar(
+                                context, 'Profile Updated Successfully!');
                           });
                         }
                       },
@@ -172,5 +193,90 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           )),
     );
+  }
+
+  // Bottom sheet for picking a profile picture for user
+  void _showBottomSheet() {
+    showModalBottomSheet(
+        context: context,
+        shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(20), topRight: Radius.circular(20))),
+        builder: (_) {
+          return ListView(
+            shrinkWrap: true,
+            padding:
+                EdgeInsets.only(top: mq.height * .03, bottom: mq.height * .05),
+            children: [
+              // Pick profile picture lable
+              const Text('Pick Profile Picture',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w500)),
+
+              // For Adding some space
+              SizedBox(
+                height: mq.height * .02,
+              ),
+
+              //Buttons
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  //pick from gallery button
+                  ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          shape: const CircleBorder(),
+                          fixedSize: Size(mq.width * .3, mq.height * .15)),
+                      onPressed: () async {
+                        final ImagePicker picker = ImagePicker();
+                        // Pick an image
+                        final XFile? image =
+                            await picker.pickImage(source: ImageSource.gallery);
+                        if (image != null) {
+                          log('Image Path: ${image.path}-- Mime type ${image.mimeType}');
+
+                          setState(() {
+                            _image = image.path;
+                          });
+                          APIs.updateProfilePicture(File(_image!));
+                          //for hindind bottom sheet
+                          Navigator.pop(context);
+                        }
+                      },
+                      child: Image.asset('images/gallery.png')),
+
+                  // Take picture from camera buttom
+                  ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          shape: const CircleBorder(),
+                          fixedSize: Size(mq.width * .3, mq.height * .15)),
+                      onPressed: () async {
+
+                        final ImagePicker picker = ImagePicker();
+                        // Pick an image
+                        final XFile? image =
+                            await picker.pickImage(source: ImageSource.camera);
+                        if (image != null) {
+                          log('Image Path: ${image.path}');
+
+                          setState(() {
+                            _image = image.path;
+                          });
+
+                          APIs.updateProfilePicture(File(_image!));
+
+                          // For hiding botton sheet
+                          Navigator.pop(context);
+                        }
+                       
+                      },
+                      child: Image.asset('images/photo.png'))
+                ],
+              )
+            ],
+          );
+        });
   }
 }
