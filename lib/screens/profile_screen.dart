@@ -2,19 +2,21 @@
 
 import 'dart:developer';
 import 'dart:io';
-import 'package:image_picker/image_picker.dart';
+
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:can_we_chat/helper/dialogs.dart';
-import 'package:can_we_chat/models/chat_user.dart';
-import 'package:can_we_chat/screens/auth/login_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:image_picker/image_picker.dart';
+
 import '../api/apis.dart';
+import '../helper/dialogs.dart';
 import '../main.dart';
+import '../models/chat_user.dart';
+import 'auth/login_screen.dart';
 
-// profile screen -- to show signed in user info
-
+//profile screen -- to show signed in user info
 class ProfileScreen extends StatefulWidget {
   final ChatUser user;
 
@@ -31,37 +33,47 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
+      // for hiding keyboard
       onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
-          //App Bar
-          appBar: AppBar(
-            title: const Text('Profile Screen'),
-          ),
+        //app bar
+          appBar: AppBar(title: const Text('Profile Screen')),
 
-          // floating button to add new user
+          //floating button to log out
           floatingActionButton: Padding(
-            padding: const EdgeInsets.only(bottom: 10.0),
+            padding: const EdgeInsets.only(bottom: 10),
             child: FloatingActionButton.extended(
-              backgroundColor: Colors.redAccent,
-              onPressed: () async {
-                //for showing progress dialog
-                Dialogs.showProgressBar(context);
-                await APIs.auth.signOut().then((value) async {
-                  await GoogleSignIn().signOut().then((value) {
-                    // For hiding progress dialog
-                    Navigator.pop(context);
-                    // for moving to home screen
-                    Navigator.pop(context);
+                backgroundColor: Colors.redAccent,
+                onPressed: () async {
+                  //for showing progress dialog
+                  Dialogs.showProgressBar(context);
 
-                    Navigator.pushReplacement(context,
-                        MaterialPageRoute(builder: (_) => LoginScreen()));
+                  await APIs.updateActiveStatus(false);
+
+                  //sign out from app
+                  await APIs.auth.signOut().then((value) async {
+                    await GoogleSignIn().signOut().then((value) {
+                      //for hiding progress dialog
+                      Navigator.pop(context);
+
+                      //for moving to home screen
+                      Navigator.pop(context);
+
+                      APIs.auth = FirebaseAuth.instance;
+
+                      //replacing home screen with login screen
+                      Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const LoginScreen()));
+                    });
                   });
-                });
-              },
-              icon: const Icon(Icons.logout),
-              label: const Text('Logout'),
-            ),
+                },
+                icon: const Icon(Icons.logout),
+                label: const Text('Logout')),
           ),
+
+          //body
           body: Form(
             key: _formKey,
             child: Padding(
@@ -69,39 +81,42 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: SingleChildScrollView(
                 child: Column(
                   children: [
-                    // For Adding some Space
+                    // for adding some space
                     SizedBox(width: mq.width, height: mq.height * .03),
 
+                    //user profile picture
                     Stack(
                       children: [
-                        // Profile picture
+                        //profile picture
                         _image != null
-                            ? ClipRRect(
-                                // Local image
-                                borderRadius:
-                                    BorderRadius.circular(mq.height * .1),
-                                child: Image.file(
-                                  File(_image!),
-                                  width: mq.height * .2,
-                                  height: mq.height * .2,
-                                  fit: BoxFit.cover
-                                ))
+                            ?
+
+                        //local image
+                        ClipRRect(
+                            borderRadius:
+                            BorderRadius.circular(mq.height * .1),
+                            child: Image.file(File(_image!),
+                                width: mq.height * .2,
+                                height: mq.height * .2,
+                                fit: BoxFit.cover))
                             :
 
-                            // Image from server
-                            ClipRRect(
-                                borderRadius:
-                                    BorderRadius.circular(mq.height * .1),
-                                child: CachedNetworkImage(
-                                  width: mq.height * .2,
-                                  height: mq.height * .2,
-                                  fit: BoxFit.cover,
-                                  imageUrl: widget.user.image,
-                                  errorWidget: (context, url, error) =>
-                                      const CircleAvatar(
-                                          child: Icon(CupertinoIcons.person)),
-                                ),
-                              ),
+                        //image from server
+                        ClipRRect(
+                          borderRadius:
+                          BorderRadius.circular(mq.height * .1),
+                          child: CachedNetworkImage(
+                            width: mq.height * .2,
+                            height: mq.height * .2,
+                            fit: BoxFit.cover,
+                            imageUrl: widget.user.image,
+                            errorWidget: (context, url, error) =>
+                            const CircleAvatar(
+                                child: Icon(CupertinoIcons.person)),
+                          ),
+                        ),
+
+                        //edit image button
                         Positioned(
                           bottom: 0,
                           right: 0,
@@ -112,64 +127,62 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             },
                             shape: const CircleBorder(),
                             color: Colors.white,
-                            child: const Icon(
-                              Icons.edit,
-                              color: Colors.blue,
-                            ),
+                            child: const Icon(Icons.edit, color: Colors.blue),
                           ),
                         )
                       ],
                     ),
-                    // For Adding some Space
+
+                    // for adding some space
                     SizedBox(height: mq.height * .03),
-                    // user email lable
+
+                    // user email label
                     Text(widget.user.email,
                         style: const TextStyle(
                             color: Colors.black54, fontSize: 16)),
 
-                    // For Adding some Space
+                    // for adding some space
                     SizedBox(height: mq.height * .05),
 
-                    // For Adding input feild
+                    // name input field
                     TextFormField(
                       initialValue: widget.user.name,
                       onSaved: (val) => APIs.me.name = val ?? '',
                       validator: (val) => val != null && val.isNotEmpty
                           ? null
-                          : 'Required feild',
+                          : 'Required Field',
                       decoration: InputDecoration(
-                        prefix: const Icon(Icons.person, color: Colors.blue),
-                        border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                        hintText: "eg. Honey Singh",
-                        label: const Text('Name'),
-                      ),
+                          prefixIcon:
+                          const Icon(Icons.person, color: Colors.blue),
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                          hintText: 'eg. Happy Singh',
+                          label: const Text('Name')),
                     ),
 
-                    // For Adding some Space
+                    // for adding some space
                     SizedBox(height: mq.height * .02),
 
-                    // About input feild
+                    // about input field
                     TextFormField(
                       initialValue: widget.user.about,
                       onSaved: (val) => APIs.me.about = val ?? '',
                       validator: (val) => val != null && val.isNotEmpty
                           ? null
-                          : 'Required feild',
+                          : 'Required Field',
                       decoration: InputDecoration(
-                        prefix:
-                            const Icon(Icons.info_outline, color: Colors.blue),
-                        border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                        hintText: "eg. Developer/Happy",
-                        label: const Text('About'),
-                      ),
+                          prefixIcon: const Icon(Icons.info_outline,
+                              color: Colors.blue),
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                          hintText: 'eg. Feeling Happy',
+                          label: const Text('About')),
                     ),
 
-                    // For Adding some Space
+                    // for adding some space
                     SizedBox(height: mq.height * .05),
 
-                    //Update profile Button
+                    // update profile button
                     ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
                           shape: const StadiumBorder(),
@@ -185,7 +198,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       },
                       icon: const Icon(Icons.edit, size: 28),
                       label:
-                          const Text('UPDATE', style: TextStyle(fontSize: 16)),
+                      const Text('UPDATE', style: TextStyle(fontSize: 16)),
                     )
                   ],
                 ),
@@ -195,7 +208,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // Bottom sheet for picking a profile picture for user
+  // bottom sheet for picking a profile picture for user
   void _showBottomSheet() {
     showModalBottomSheet(
         context: context,
@@ -206,19 +219,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
           return ListView(
             shrinkWrap: true,
             padding:
-                EdgeInsets.only(top: mq.height * .03, bottom: mq.height * .05),
+            EdgeInsets.only(top: mq.height * .03, bottom: mq.height * .05),
             children: [
-              // Pick profile picture lable
+              //pick profile picture label
               const Text('Pick Profile Picture',
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.w500)),
 
-              // For Adding some space
-              SizedBox(
-                height: mq.height * .02,
-              ),
+              //for adding some space
+              SizedBox(height: mq.height * .02),
 
-              //Buttons
+              //buttons
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
@@ -230,49 +241,47 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           fixedSize: Size(mq.width * .3, mq.height * .15)),
                       onPressed: () async {
                         final ImagePicker picker = ImagePicker();
-                        // Pick an image
-                        final XFile? image =
-                            await picker.pickImage(source: ImageSource.gallery);
-                        if (image != null) {
-                          log('Image Path: ${image.path}-- Mime type ${image.mimeType}');
 
+                        // Pick an image
+                        final XFile? image = await picker.pickImage(
+                            source: ImageSource.gallery, imageQuality: 80);
+                        if (image != null) {
+                          log('Image Path: ${image.path}');
                           setState(() {
                             _image = image.path;
                           });
+
                           APIs.updateProfilePicture(File(_image!));
-                          //for hindind bottom sheet
+                          // for hiding bottom sheet
                           Navigator.pop(context);
                         }
                       },
-                      child: Image.asset('images/gallery.png')),
+                      child: Image.asset('images/add_image.png')),
 
-                  // Take picture from camera buttom
+                  //take picture from camera button
                   ElevatedButton(
                       style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.white,
                           shape: const CircleBorder(),
                           fixedSize: Size(mq.width * .3, mq.height * .15)),
                       onPressed: () async {
-
                         final ImagePicker picker = ImagePicker();
+
                         // Pick an image
-                        final XFile? image =
-                            await picker.pickImage(source: ImageSource.camera);
+                        final XFile? image = await picker.pickImage(
+                            source: ImageSource.camera, imageQuality: 80);
                         if (image != null) {
                           log('Image Path: ${image.path}');
-
                           setState(() {
                             _image = image.path;
                           });
 
                           APIs.updateProfilePicture(File(_image!));
-
-                          // For hiding botton sheet
+                          // for hiding bottom sheet
                           Navigator.pop(context);
                         }
-                       
                       },
-                      child: Image.asset('images/photo.png'))
+                      child: Image.asset('images/camera.png')),
                 ],
               )
             ],

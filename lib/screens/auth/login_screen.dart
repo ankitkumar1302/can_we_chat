@@ -1,14 +1,16 @@
 import 'dart:developer';
 import 'dart:io';
-import 'package:can_we_chat/helper/dialogs.dart';
-import 'package:can_we_chat/main.dart';
-import 'package:can_we_chat/screens/home_screen.dart';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import '../../api/apis.dart';
+import '../../helper/dialogs.dart';
+import '../../main.dart';
+import '../home_screen.dart';
 
+//login screen -- implements google sign in or sign up feature for app
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -22,27 +24,27 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void initState() {
     super.initState();
+
+    //for auto triggering animation
     Future.delayed(const Duration(milliseconds: 500), () {
-      setState(() {
-        _isAnimate = true;
-      });
+      setState(() => _isAnimate = true);
     });
   }
 
-  //handle google login button clicked
-  _handleGoogleButtonClick() {
-    // For Showing the progress bar
+  // handles google login button click
+  _handleGoogleBtnClick() {
+    //for showing progress bar
     Dialogs.showProgressBar(context);
+
     _signInWithGoogle().then((user) async {
-      // For hiding the progress bar
+      //for hiding progress bar
       Navigator.pop(context);
+
       if (user != null) {
         log('\nUser: ${user.user}');
-        log('\nUser: ${user.additionalUserInfo}');
+        log('\nUserAdditionalInfo: ${user.additionalUserInfo}');
 
-        if ((await APIs.userExits())) {
-         
-          // ignore: use_build_context_synchronously
+        if ((await APIs.userExists())) {
           Navigator.pushReplacement(
               context, MaterialPageRoute(builder: (_) => const HomeScreen()));
         } else {
@@ -63,7 +65,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
       // Obtain the auth details from the request
       final GoogleSignInAuthentication? googleAuth =
-          await googleUser?.authentication;
+      await googleUser?.authentication;
 
       // Create a new credential
       final credential = GoogleAuthProvider.credential(
@@ -75,47 +77,68 @@ class _LoginScreenState extends State<LoginScreen> {
       return await APIs.auth.signInWithCredential(credential);
     } catch (e) {
       log('\n_signInWithGoogle: $e');
-      Dialogs.showSnackbar(context, 'Something went Wrong (Checked Internet!)');
+      Dialogs.showSnackbar(context, 'Something Went Wrong (Check Internet!)');
       return null;
     }
   }
 
+  //sign out function
+  // _signOut() async {
+  //   await FirebaseAuth.instance.signOut();
+  //   await GoogleSignIn().signOut();
+  // }
+
   @override
   Widget build(BuildContext context) {
+    //initializing media query (for getting device screen size)
     // mq = MediaQuery.of(context).size;
 
     return Scaffold(
-      //App Bar
+      //app bar
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: const Text('Login to Can We Chat?'),
+        title: const Text('Welcome to We Chat'),
       ),
 
+      //body
       body: Stack(children: [
+        //app logo
         AnimatedPositioned(
             top: mq.height * .15,
             right: _isAnimate ? mq.width * .25 : -mq.width * .5,
             width: mq.width * .5,
             duration: const Duration(seconds: 1),
-            child: Image.asset('images/instagram.png')),
+            child: Image.asset('images/icon.png')),
+
+        //google login button
         Positioned(
             bottom: mq.height * .15,
             left: mq.width * .05,
             width: mq.width * .9,
-            height: mq.height * .07,
+            height: mq.height * .06,
             child: ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                  shape: const StadiumBorder(),
-                  elevation: 1),
-              onPressed: () {
-                _handleGoogleButtonClick();
-              },
-              //Google Icon
-              icon: Image.asset('images/google.png', height: mq.height * .05),
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color.fromARGB(255, 223, 255, 187),
+                    shape: const StadiumBorder(),
+                    elevation: 1),
+                onPressed: () {
+                  _handleGoogleBtnClick();
+                },
 
-              label: const Text('LogIn With Google'),
-            )),
+                //google icon
+                icon: Image.asset('images/google.png', height: mq.height * .03),
+
+                //login with google label
+                label: RichText(
+                  text: const TextSpan(
+                      style: TextStyle(color: Colors.black, fontSize: 16),
+                      children: [
+                        TextSpan(text: 'Login with '),
+                        TextSpan(
+                            text: 'Google',
+                            style: TextStyle(fontWeight: FontWeight.w500)),
+                      ]),
+                ))),
       ]),
     );
   }
